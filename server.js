@@ -8,7 +8,7 @@ const port = process.env.PORT || 10000;
 
 // === Настройки Bybit ===
 const API_KEY = 'kdvapQWoGxJW8ILWCy'; // ← Замени, если нужно (но у тебя уже есть)
-const API_SECRET = 'vHd41ahtmvyXUzi1PyVKFXxpZ2LZrShPI969+'; // ← ОБЯЗАТЕЛЬНО замени на свой секрет!
+const API_SECRET = 'vHd41ahtmvyXUzi1PyVKFXxpZ2LZrShPI969'; // ← ОБЯЗАТЕЛЬНО замени на свой секрет!
 
 // Функция для генерации HMAC-SHA256 подписи
 function generateSignature(secret, message) {
@@ -77,4 +77,5 @@ app.listen(port, () => {
   console.log(`✅ Сервер запущен на порту ${port}`);
   console.log(`🌐 Открой: https://your-service-name.onrender.com/balance`);
 });
+
 
