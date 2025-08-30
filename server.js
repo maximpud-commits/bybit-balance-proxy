@@ -4,27 +4,36 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
 
-// === Настройки Bybit (заполни их!) ===
-const API_KEY = 'kdvapQWoGxJW8ILWCy';           // ← Вставь свой
-const API_SECRET = 'vHd41ahtmvyXUzi1PyVKFXxpZ2LZrShPI969';     // ← Вставь свой
+// === Настройки Bybit ===
+const API_KEY = 'kdvapQWoGxJW8ILWCy'; // ← Замени, если нужно (но у тебя уже есть)
+const API_SECRET = 'vHd41ahtmvyXUzi1PyVKFXxpZ2LZrShPI969'; // ← ОБЯЗАТЕЛЬНО замени на свой секрет!
 
-// === Генерация подписи ===
+// Функция для генерации HMAC-SHA256 подписи
 function generateSignature(secret, message) {
   return crypto.createHmac('sha256', secret).update(message).digest('hex');
 }
 
-// === Эндпоинт для Google Таблицы ===
+// Эндпоинт: /balance — получение баланса
 app.get('/balance', async (req, res) => {
-  const timestamp = Date.now();
+  const timestamp = Date.now().toString(); // Должно быть строкой
   const recvWindow = '10000';
   const endpoint = '/v5/account/wallet-balance';
   const params = 'accountType=UNIFIED';
-  const url = `https://api.bybit.com${endpoint}?${params}`;
 
-  const message = `${timestamp}${API_KEY}${recvWindow}${endpoint}?${params}`;
+  // ✅ Формируем строку для подписи ТОЧНО по документации Bybit
+  const queryString = `?${params}`;
+  const message = `${timestamp}${API_KEY}${recvWindow}${endpoint}${queryString}`;
+
+  console.log('🔧 [DEBUG] Message for signature:', message); // Лог для проверки
+
   const signature = generateSignature(API_SECRET, message);
+
+  const url = `https://api.bybit.com${endpoint}${queryString}`;
+
+  console.log('📤 [DEBUG] Sending request to:', url);
+  console.log('🔑 [DEBUG] Using signature:', signature);
 
   try {
     const response = await axios.get(url, {
@@ -33,10 +42,12 @@ app.get('/balance', async (req, res) => {
         'X-BAPI-SIGN': signature,
         'X-BAPI-TIMESTAMP': timestamp,
         'X-BAPI-RECV-WINDOW': recvWindow,
+        'Content-Type': 'application/json',
       },
     });
 
-    // Отправляем только нужные данные
+    console.log('✅ [SUCCESS] Response from Bybit:', response.data.retMsg);
+
     const wallet = response.data.result?.list?.[0];
     const usdt = wallet?.coin?.find(c => c.coin === 'USDT');
 
@@ -47,19 +58,22 @@ app.get('/balance', async (req, res) => {
       raw: response.data.retMsg,
     });
   } catch (error) {
-    console.error('Ошибка Bybit:', error.response?.data || error.message);
+    console.error('❌ [ERROR] Bybit API error:', error.response?.data || error.message);
     res.status(500).json({
       success: false,
       error: error.response?.data?.retMsg || error.message,
+      raw: error.response?.data || null,
     });
   }
 });
 
-// Проверка, что сервер жив
+// Главная страница — проверка, что сервер жив
 app.get('/', (req, res) => {
-  res.send('Bybit Proxy Server работает! Доступ: /balance');
+  res.send('Bybit Proxy Server работает! Доступ: <a href="/balance">/balance</a>');
 });
 
+// Запуск сервера
 app.listen(port, () => {
   console.log(`✅ Сервер запущен на порту ${port}`);
+  console.log(`🌐 Открой: https://your-service-name.onrender.com/balance`);
 });
