@@ -7,33 +7,28 @@ const app = express();
 const port = process.env.PORT || 10000;
 
 // === Настройки Bybit ===
-const API_KEY = 'kdvapQWoGxJW8ILWCy'; // ← Замени, если нужно (но у тебя уже есть)
-const API_SECRET = 'vHd41ahtmvyXUzi1PyVKFXxpZ2LZrShPI969'; // ← ОБЯЗАТЕЛЬНО замени на свой секрет!
+const API_KEY = 'kdvapQWoGxJW8ILWCy'; // ← Вставь свой API Key Ё
+const API_SECRET = 'vHd41ahtmvyXUzi1PyVKFXxpZ2LZrShPI969'; // ← Вставь свой API Secret
 
-// Функция для генерации HMAC-SHA256 подписи
 function generateSignature(secret, message) {
   return crypto.createHmac('sha256', secret).update(message).digest('hex');
 }
 
-// Эндпоинт: /balance — получение баланса
 app.get('/balance', async (req, res) => {
   const timestamp = Date.now().toString(); // Должно быть строкой
   const recvWindow = '10000';
   const endpoint = '/v5/account/wallet-balance';
   const params = 'accountType=UNIFIED';
 
-  // ✅ Формируем строку для подписи ТОЧНО по документации Bybit
+  // ✅ Правильная строка для подписи
   const queryString = `?${params}`;
   const message = `${timestamp}${API_KEY}${recvWindow}${endpoint}${queryString}`;
 
-  console.log('🔧 [DEBUG] Message for signature:', message); // Лог для проверки
+  console.log('🔧 [DEBUG] Message for signature:', message);
 
   const signature = generateSignature(API_SECRET, message);
 
   const url = `https://api.bybit.com${endpoint}${queryString}`;
-
-  console.log('📤 [DEBUG] Sending request to:', url);
-  console.log('🔑 [DEBUG] Using signature:', signature);
 
   try {
     const response = await axios.get(url, {
@@ -58,7 +53,7 @@ app.get('/balance', async (req, res) => {
       raw: response.data.retMsg,
     });
   } catch (error) {
-    console.error('❌ [ERROR] Bybit API error:', error.response?.data || error.message);
+    console.error('❌ [ERROR] Bybit API error:', error.response?.data);
     res.status(500).json({
       success: false,
       error: error.response?.data?.retMsg || error.message,
@@ -67,15 +62,10 @@ app.get('/balance', async (req, res) => {
   }
 });
 
-// Главная страница — проверка, что сервер жив
 app.get('/', (req, res) => {
   res.send('Bybit Proxy Server работает! Доступ: <a href="/balance">/balance</a>');
 });
 
-// Запуск сервера
 app.listen(port, () => {
   console.log(`✅ Сервер запущен на порту ${port}`);
-  console.log(`🌐 Открой: https://your-service-name.onrender.com/balance`);
 });
-
-
